@@ -5,6 +5,9 @@
 #include <map>
 #include <set>
 
+#include <assert.h>
+#include <future>
+
 std::map<int,pthread_t> task_map;
 std::thread threads[3];
 
@@ -32,9 +35,23 @@ void show_thread(const std::string &keyword)
     system(cmd.c_str());
 }
 */
+void threadFunction(std::future<void> futureObj)
+{
+	std::cout << "Thread Start" << std::endl;
+	while (futureObj.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout)
+	{
+		std::cout << "Doing Some Work" << std::endl;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+	}
+	std::cout << "Thread End" << std::endl;
+
+}
+
+
 int main() 
 {
- 
+ /*
   std::cout << "Spawning and detaching 3 threads...\n";
   std::thread t1(measure,10);
   std::thread t2(measure,20);
@@ -61,5 +78,18 @@ int main()
   		std::cout << "Thread " << i << " killed:" << std::endl;
   	}
   }
+  return 0;
+  */
+  std::promise<void> exitSignal;
+  std::future<void> futureObj = exitSignal.get_future();
+  std::thread th(&threadFunction, std::move(futureObj));
+
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+
+  std::cout<<"now stop:"<<std::endl;
+
+  exitSignal.set_value();
+  th.join();
+  std::cout << "Exiting Main Function" << std::endl;
   return 0;
 }
